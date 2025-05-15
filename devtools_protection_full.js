@@ -43,31 +43,33 @@
 
   document.addEventListener('keydown', function(e) {
     if (!config.protectionActive) return;
-    
-    const blocked = blockedShortcuts.some(shortcut => {
-      const keysPressed = shortcut.keys.map(key => 
-        key === "Control" ? e.ctrlKey : 
-        key === "Shift" ? e.shiftKey : 
-        key === "Alt" ? e.altKey : 
-        e.key === key
-      );
-      return keysPressed.every(Boolean);
+
+    const isBlocked = blockedShortcuts.some(shortcut => {
+      return shortcut.keys.every(key => {
+        if (key === "Control") return e.ctrlKey;
+        if (key === "Shift") return e.shiftKey;
+        if (key === "Alt") return e.altKey;
+        return e.key.toLowerCase() === key.toLowerCase();
+      });
     });
 
-    if (blocked) {
+    if (isBlocked) {
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
-      
-      const shortcutDesc = blockedShortcuts.find(s => 
-        s.keys.some(k => k === e.key || 
-        (k === "Control" && e.ctrlKey) || 
-        (k === "Shift" && e.shiftKey))
-        .description;
-      
+
+      const shortcutDesc = blockedShortcuts.find(s => {
+        return s.keys.every(key => {
+          if (key === "Control") return e.ctrlKey;
+          if (key === "Shift") return e.shiftKey;
+          if (key === "Alt") return e.altKey;
+          return e.key.toLowerCase() === key.toLowerCase();
+        });
+      })?.description || "Unknown Shortcut";
+
       showWarning(`${config.warningMessages.shortcutBlocked} (${shortcutDesc})`);
       state.attemptCount++;
-      
+
       if (state.attemptCount >= config.maxAttempts && config.enableRedirect) {
         enforceProtection();
       }
@@ -77,26 +79,22 @@
   // 3. Advanced DevTools Detection
   function detectDevTools() {
     try {
-      // Method 1: Window size difference
       const widthDiff = window.outerWidth - window.innerWidth;
       const heightDiff = window.outerHeight - window.innerHeight;
       const sizeDetected = widthDiff > config.sizeThreshold || heightDiff > config.sizeThreshold;
-      
-      // Method 2: Debugger detection
+
       let debuggerDetected = false;
-      const debuggerChecker = new Function("debugger");
+      const f = function() { debugger; };
+      const start = performance.now();
       try {
-        debuggerChecker();
+        f();
       } catch (e) {
         debuggerDetected = e && e.message && e.message.includes("debugger");
       }
-      
-      // Method 3: Console timing detection
-      let consoleTimeDetected = false;
-      const start = performance.now();
-      console.log(start);
-      consoleTimeDetected = performance.now() - start > 100;
-      
+      const duration = performance.now() - start;
+
+      const consoleTimeDetected = duration > 100;
+
       return sizeDetected || debuggerDetected || consoleTimeDetected;
     } catch (e) {
       return false;
@@ -106,17 +104,14 @@
   // 4. Protection Enforcement
   function enforceProtection() {
     if (!config.protectionActive) return;
-    
-    // Clear the page
-    document.documentElement.innerHTML = "<h1 style='text-align:center;margin-top:20%'>Access Restricted</h1>";
+
+    document.documentElement.innerHTML = "<h1 style='text-align:center;margin-top:20%;color:red;'>Access Restricted</h1>";
     document.documentElement.style.pointerEvents = "none";
-    
-    // Disable navigation
+
     window.onbeforeunload = function() {
       return "Navigation disabled due to security policy violation.";
     };
-    
-    // Redirect if enabled
+
     if (config.enableRedirect) {
       window.location.replace(config.redirectUrl);
     }
@@ -124,55 +119,59 @@
 
   // 5. Console Protection
   if (config.enableConsoleProtection) {
-    Object.defineProperty(window, 'console', {
-      value: {},
-      writable: false,
-      configurable: false
-    });
-    
-    Object.defineProperty(window, 'alert', {
-      value: function(msg) { 
-        document.dispatchEvent(new CustomEvent('securityAlert', { detail: msg }));
-      },
-      writable: false,
-      configurable: false
-    });
+    try {
+      Object.defineProperty(window, 'console', {
+        value: {},
+        writable: false,
+        configurable: false
+      });
+      Object.defineProperty(window, 'alert', {
+        value: function(msg) {
+          document.dispatchEvent(new CustomEvent('securityAlert', { detail: msg }));
+        },
+        writable: false,
+        configurable: false
+      });
+    } catch (e) {}
   }
 
   // 6. User Warning System
   function showWarning(message) {
     if (state.warningShown) return;
-    
+
     const warningBox = document.createElement('div');
-    warningBox.style = `
+    warningBox.style.cssText = `
       position: fixed;
       top: 20px;
       left: 50%;
       transform: translateX(-50%);
       background-color: #ff4444;
       color: white;
-      padding: 15px;
+      padding: 15px 25px;
       border-radius: 5px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.2);
       z-index: 99999;
       max-width: 80%;
       text-align: center;
-      animation: fadeIn 0.5s;
+      font-family: sans-serif;
+      animation: fadeIn 0.5s forwards;
     `;
-    
+
     warningBox.innerHTML = `
       <strong>Security Warning</strong>
       <p>${message}</p>
       <small>Attempt ${state.attemptCount} of ${config.maxAttempts}</small>
     `;
-    
+
     document.body.appendChild(warningBox);
     state.warningShown = true;
-    
+
     setTimeout(() => {
-      warningBox.style.animation = "fadeOut 0.5s";
-      setTimeout(() => warningBox.remove(), 500);
-      state.warningShown = false;
+      warningBox.style.animation = "fadeOut 0.5s forwards";
+      setTimeout(() => {
+        warningBox.remove();
+        state.warningShown = false;
+      }, 500);
     }, 3000);
   }
 
@@ -182,7 +181,7 @@
       state.devtoolsOpen = true;
       state.attemptCount++;
       showWarning(config.warningMessages.devtoolsOpened);
-      
+
       if (state.attemptCount >= config.maxAttempts) {
         enforceProtection();
       }
@@ -191,7 +190,13 @@
     }
   }, config.checkInterval);
 
-  // Initialization
+  // 8. Back Button Blocker
+  history.pushState(null, null, location.href);
+  window.onpopstate = function () {
+    history.go(1);
+  };
+
+  // Initialization logs
   console.log('%c🔒 DevTools Protection System: ACTIVE', 'color: red; font-weight: bold; font-size: 14px;');
   console.log = function() {};
   console.warn = function() {};
