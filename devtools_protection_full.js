@@ -190,10 +190,11 @@
     }
   }, config.checkInterval);
 
-  // 8. Back Button Blocker
+  // 8. Back Button Blocker with Window Close on Back
   history.pushState(null, null, location.href);
   window.onpopstate = function () {
-    history.go(1);
+    window.close(); // Try to close the window/tab
+    window.location.replace('about:blank'); // Fallback redirect if close fails
   };
 
   // Initialization logs
