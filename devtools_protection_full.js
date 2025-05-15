@@ -31,7 +31,7 @@
       devtoolsOpen = true;
       alert('DevTools खोल्नु निषेध छ!');
       // Optionally redirect
-      // window.location.href = "about:blank";
+      // window.location.replace("about:blank");
     } else if (!(widthThreshold || heightThreshold)) {
       devtoolsOpen = false;
     }
@@ -52,8 +52,6 @@
 
 })();
 
-
-
 // == Extra: Detect DevTools via window size changes and act harshly ==
 (function() {
   'use strict';
@@ -70,7 +68,7 @@
         devtools.open = true;
         document.body.innerHTML = "";
         alert("DevTools खोल्न पाइँदैन!");
-        window.location.href = "about:blank";
+        window.location.replace("about:blank"); // ✅ updated here to prevent going back
       }
     } else {
       devtools.open = false;
