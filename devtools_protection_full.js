@@ -1,48 +1,46 @@
 // == Nuclear DevTools Protection System ==
-(function() {
+(function () {
   'use strict';
 
   // Configuration
   const config = {
     protectionActive: true,
-    nuclearMode: true, // Enable extreme measures
-    autoRefresh: true, // Refresh page when DevTools detected
-    forceOffline: true, // Take page offline after detection
-    maxRefreshes: 3, // Maximum refresh attempts before going offline
-    refreshDelay: 100, // Delay before refresh (ms)
+    nuclearMode: true,
+    autoRefresh: true,
+    forceOffline: true,
+    maxRefreshes: 3,
+    refreshDelay: 100,
     warningMessages: {
       devtoolsOpened: "⚠️ SECURITY ALERT: Developer tools detected!",
       offlineMode: "⚠️ OFFLINE MODE: Security measures activated",
       refreshNotice: "Page will refresh for security reasons..."
     },
     redirectUrl: "about:blank",
-    checkInterval: 200, // More frequent checking
+    checkInterval: 200,
     sizeThreshold: 160
   };
 
   // State tracking
-  let state = {
+  const state = {
     devtoolsOpen: false,
     refreshCount: 0,
     isOffline: false,
     detectionActive: true
   };
 
-  // 1. Enhanced DevTools Detection with Forced Open detection
+  // 1. DevTools Detection
   function detectDevTools() {
     try {
-      // Method 1: Window size difference
       const widthThreshold = config.sizeThreshold + Math.random() * 20;
       const heightThreshold = config.sizeThreshold + Math.random() * 20;
       const widthDiff = window.outerWidth - window.innerWidth;
       const heightDiff = window.outerHeight - window.innerHeight;
       const sizeDetected = widthDiff > widthThreshold || heightDiff > heightThreshold;
 
-      // Method 2: Debugger trap with random delay
       let debuggerDetected = false;
       const start = performance.now();
       try {
-        (function() {
+        (function () {
           const r = Math.random().toString(36).substring(7);
           debugger;
           return r;
@@ -53,22 +51,19 @@
       const duration = performance.now() - start;
       const consoleTimeDetected = duration > 100 + Math.random() * 50;
 
-      // Method 3: Function toString tampering check
       const funcToString = Function.prototype.toString;
       const tamperDetected = funcToString.toString().indexOf('native') === -1;
 
       return sizeDetected || debuggerDetected || consoleTimeDetected || tamperDetected;
     } catch (e) {
-      return true; // Assume devtools open if detection fails
+      return true;
     }
   }
 
-  // 2. Auto-Refresh Mechanism
+  // 2. Auto-Refresh
   function triggerAutoRefresh() {
     if (!config.autoRefresh || state.refreshCount >= config.maxRefreshes) {
-      if (config.forceOffline) {
-        activateOfflineMode();
-      }
+      if (config.forceOffline) activateOfflineMode();
       return;
     }
 
@@ -76,78 +71,65 @@
     showWarning(config.warningMessages.refreshNotice, 1500);
 
     setTimeout(() => {
-      // Clear all storage before refresh
       try {
         localStorage.clear();
         sessionStorage.clear();
-      } catch (e) {}
+      } catch (e) { }
 
-      // Refresh with random parameter to bypass cache
-      window.location.href = window.location.href.split('?')[0] + '?udps_refresh=' + 
+      window.location.href =
+        window.location.href.split('?')[0] + '?udps_refresh=' +
         Math.random().toString(36).substring(7);
     }, config.refreshDelay);
   }
 
-  // 3. Offline Mode Activation
+  // 3. Offline Mode
   function activateOfflineMode() {
     if (!config.forceOffline || state.isOffline) return;
 
     state.isOffline = true;
-    state.detectionActive = false; // Stop further detection
+    state.detectionActive = false;
 
-    // Show offline warning
     showWarning(config.warningMessages.offlineMode, 0);
 
-    // Disconnect all network activity
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(registrations => {
-        for (let registration of registrations) {
-          registration.unregister();
-        }
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        for (let reg of regs) reg.unregister();
       });
     }
 
-    // Block all fetch requests
-    const originalFetch = window.fetch;
-    window.fetch = function() {
+    window.fetch = function () {
       return Promise.reject(new Error("Network access disabled by security policy"));
     };
-
-    // Disable WebSockets
-    window.WebSocket = function() {
+    window.WebSocket = function () {
       throw new Error("WebSocket access disabled by security policy");
     };
-
-    // Disable EventSource
-    window.EventSource = function() {
+    window.EventSource = function () {
       throw new Error("EventSource access disabled by security policy");
     };
 
-    // Replace all images with placeholder
     document.querySelectorAll('img').forEach(img => {
-      img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgZmlsbD0iI2VlZSI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBhbGlnbm1lbnQtYmFzZWxpbmU9Im1pZGRsZSIgZmlsbD0iIzk5OSI+T0ZGTElORSBNT0RFPC90ZXh0Pjwvc3ZnPg==';
+      img.src =
+        'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgZmlsbD0iI2VlZSI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBhbGlnbm1lbnQtYmFzZWxpbmU9Im1pZGRsZSIgZmlsbD0iIzk5OSI+T0ZGTElORSBNT0RFPC90ZXh0Pjwvc3ZnPg==';
       img.style.filter = 'grayscale(100%)';
     });
 
-    // Disable all links
     document.querySelectorAll('a').forEach(a => {
       a.href = 'javascript:void(0)';
-      a.onclick = function(e) {
+      a.onclick = e => {
         e.preventDefault();
         showWarning("Navigation disabled in offline mode");
       };
     });
 
-    // Disable forms
     document.querySelectorAll('form').forEach(form => {
-      form.onsubmit = function(e) {
+      form.onsubmit = e => {
         e.preventDefault();
         showWarning("Form submission disabled in offline mode");
       };
     });
   }
 
-  // 4. Warning System
+  // 4. Show Warning
   function showWarning(message, duration = 3000) {
     const warningBox = document.createElement('div');
     warningBox.style.cssText = `
@@ -180,7 +162,6 @@
         </div>
       </div>
     `;
-
     document.body.appendChild(warningBox);
 
     if (duration > 0) {
@@ -191,20 +172,7 @@
     }
   }
 
-  // 5. Continuous Monitoring with Auto-Refresh
-  const monitoringInterval = setInterval(() => {
-    if (!state.detectionActive) return;
-
-    if (detectDevTools() && !state.devtoolsOpen) {
-      state.devtoolsOpen = true;
-      showWarning(config.warningMessages.devtoolsOpened, 1500);
-      triggerAutoRefresh();
-    } else if (!detectDevTools()) {
-      state.devtoolsOpen = false;
-    }
-  }, config.checkInterval);
-
-  // 6. Style for warnings
+  // 5. Style Keyframes
   const style = document.createElement('style');
   style.textContent = `
     @keyframes udpsFadeIn {
@@ -218,9 +186,36 @@
   `;
   document.head.appendChild(style);
 
-  // 7. Initialization protection
-  document.addEventListener('DOMContentLoaded', function() {
-    // Check for forced DevTools on load
+  // 6. Continuous Detection (Interval)
+  const monitoringInterval = setInterval(() => {
+    if (!state.detectionActive) return;
+
+    if (detectDevTools() && !state.devtoolsOpen) {
+      state.devtoolsOpen = true;
+      showWarning(config.warningMessages.devtoolsOpened, 1500);
+      triggerAutoRefresh();
+    } else if (!detectDevTools()) {
+      state.devtoolsOpen = false;
+    }
+  }, config.checkInterval);
+
+  // 7. Aggressive Detection (Frame loop)
+  (function monitorFrame() {
+    if (!state.detectionActive) return;
+    if (detectDevTools()) {
+      if (!state.devtoolsOpen) {
+        state.devtoolsOpen = true;
+        showWarning(config.warningMessages.devtoolsOpened, 1500);
+        triggerAutoRefresh();
+      }
+    } else {
+      state.devtoolsOpen = false;
+    }
+    requestAnimationFrame(monitorFrame);
+  })();
+
+  // 8. On Page Load
+  document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
       if (detectDevTools()) {
         state.devtoolsOpen = true;
@@ -229,16 +224,15 @@
     }, 1000);
   });
 
-  // 8. Prevent bypassing via URL changes
-  window.addEventListener('hashchange', function() {
+  // 9. On Hash Change
+  window.addEventListener('hashchange', () => {
     if (state.detectionActive && detectDevTools()) {
       triggerAutoRefresh();
     }
   });
 
-  // 9. Nuclear option for persistent DevTools
-  window.addEventListener('blur', function() {
-    // If window loses focus (likely due to DevTools opening)
+  // 10. On Blur (user switches tabs or opens DevTools)
+  window.addEventListener('blur', () => {
     setTimeout(() => {
       if (detectDevTools()) {
         triggerAutoRefresh();
@@ -246,7 +240,7 @@
     }, 500);
   });
 
-  // 10. Final lockdown
+  // 11. Final Lockdown
   Object.freeze(config);
   Object.freeze(state);
 })();
