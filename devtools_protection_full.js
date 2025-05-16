@@ -1,130 +1,34 @@
-// == Ultimate DevTools Protection System 2.0 ==
+// == Nuclear DevTools Protection System ==
 (function() {
   'use strict';
 
-  // Configuration with modular options
+  // Configuration
   const config = {
     protectionActive: true,
-    stealthMode: true, // Hide protection system from detection
-    selfDestructOnTamper: true, // Clear all data if tampering detected
-    aiBehaviorAnalysis: true, // Detect unusual user behavior patterns
-    fingerprintTracking: true, // Track user across sessions
-    cryptoMiningProtection: true, // Block crypto mining attempts
+    nuclearMode: true, // Enable extreme measures
+    autoRefresh: true, // Refresh page when DevTools detected
+    forceOffline: true, // Take page offline after detection
+    maxRefreshes: 3, // Maximum refresh attempts before going offline
+    refreshDelay: 100, // Delay before refresh (ms)
     warningMessages: {
-      devtoolsOpened: "⚠️ Security Alert: Unauthorized debugging detected!",
-      rightClickDisabled: "Inspection tools are restricted on this platform.",
-      shortcutBlocked: "Security Policy: Developer tools access blocked.",
-      tamperDetected: "System integrity compromised. Session terminated.",
-      behaviorAnomaly: "Unusual activity detected. Session monitored."
+      devtoolsOpened: "⚠️ SECURITY ALERT: Developer tools detected!",
+      offlineMode: "⚠️ OFFLINE MODE: Security measures activated",
+      refreshNotice: "Page will refresh for security reasons..."
     },
     redirectUrl: "about:blank",
-    checkInterval: 300,
-    sizeThreshold: 180,
-    maxAttempts: 2,
-    enableRedirect: true,
-    enableConsoleProtection: true,
-    enableMemoryProtection: true,
-    enableWebWorkerProtection: true,
-    enableServiceWorkerProtection: true
+    checkInterval: 200, // More frequent checking
+    sizeThreshold: 160
   };
 
-  // Advanced state tracking with behavioral analytics
-  const state = {
+  // State tracking
+  let state = {
     devtoolsOpen: false,
-    attemptCount: 0,
-    warningShown: false,
-    lastActivity: Date.now(),
-    activityPattern: [],
-    userFingerprint: null,
-    protectionActiveSince: Date.now(),
-    tamperAttempts: 0
+    refreshCount: 0,
+    isOffline: false,
+    detectionActive: true
   };
 
-  // Generate unique fingerprint
-  if (config.fingerprintTracking) {
-    try {
-      state.userFingerprint = generateFingerprint();
-      localStorage.setItem('_udps_fp', state.userFingerprint);
-    } catch (e) {}
-  }
-
-  // 1. Quantum Right-Click Protection (multi-layer)
-  document.addEventListener('contextmenu', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-    logActivity('right_click_attempt');
-    showWarning(config.warningMessages.rightClickDisabled);
-  }, true);
-
-  // 2. Neural Shortcut Blocking (adaptive pattern recognition)
-  const blockedShortcuts = [
-    { keys: ["F12"], description: "F12" },
-    { keys: ["Control", "Shift", "I"], description: "Ctrl+Shift+I" },
-    { keys: ["Control", "Shift", "J"], description: "Ctrl+Shift+J" },
-    { keys: ["Control", "U"], description: "Ctrl+U" },
-    { keys: ["Control", "Shift", "C"], description: "Ctrl+Shift+C" },
-    { keys: ["Control", "Shift", "K"], description: "Ctrl+Shift+K" },
-    { keys: ["Control", "Alt", "U"], description: "Ctrl+Alt+U" },
-    { keys: ["Control", "Alt", "I"], description: "Ctrl+Alt+I" },
-    { keys: ["Control", "Alt", "J"], description: "Ctrl+Alt+J" }
-  ];
-
-  const shortcutPatterns = [];
-  document.addEventListener('keydown', function(e) {
-    if (!config.protectionActive) return;
-    
-    logActivity('key_press', e.key);
-    
-    // AI behavior analysis
-    if (config.aiBehaviorAnalysis) {
-      shortcutPatterns.push({
-        key: e.key,
-        time: Date.now(),
-        modifiers: {
-          ctrl: e.ctrlKey,
-          shift: e.shiftKey,
-          alt: e.altKey
-        }
-      });
-      
-      analyzeBehaviorPatterns();
-    }
-
-    const isBlocked = blockedShortcuts.some(shortcut => {
-      return shortcut.keys.every(key => {
-        if (key === "Control") return e.ctrlKey;
-        if (key === "Shift") return e.shiftKey;
-        if (key === "Alt") return e.altKey;
-        return e.key.toLowerCase() === key.toLowerCase();
-      });
-    });
-
-    if (isBlocked) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-
-      const shortcutDesc = blockedShortcuts.find(s => {
-        return s.keys.every(key => {
-          if (key === "Control") return e.ctrlKey;
-          if (key === "Shift") return e.shiftKey;
-          if (key === "Alt") return e.altKey;
-          return e.key.toLowerCase() === key.toLowerCase();
-        });
-      })?.description || "Unknown Shortcut";
-
-      showWarning(`${config.warningMessages.shortcutBlocked} (${shortcutDesc})`);
-      state.attemptCount++;
-      logActivity('devtools_shortcut_attempt', shortcutDesc);
-
-      if (state.attemptCount >= config.maxAttempts) {
-        enforceProtection();
-      }
-    }
-  }, true);
-
-  // 3. Quantum DevTools Detection (multi-method)
+  // 1. Enhanced DevTools Detection with Forced Open detection
   function detectDevTools() {
     try {
       // Method 1: Window size difference
@@ -153,155 +57,105 @@
       const funcToString = Function.prototype.toString;
       const tamperDetected = funcToString.toString().indexOf('native') === -1;
 
-      // Method 4: Memory usage pattern analysis
-      let memoryAnomaly = false;
-      if (config.enableMemoryProtection) {
-        try {
-          const memoryBefore = performance.memory?.usedJSHeapSize || 0;
-          const testArray = new Array(1000000).fill(Math.random());
-          const memoryAfter = performance.memory?.usedJSHeapSize || 0;
-          memoryAnomaly = (memoryAfter - memoryBefore) < 10000000; // Expecting significant increase
-        } catch (e) {}
-      }
-
-      return sizeDetected || debuggerDetected || consoleTimeDetected || tamperDetected || memoryAnomaly;
+      return sizeDetected || debuggerDetected || consoleTimeDetected || tamperDetected;
     } catch (e) {
       return true; // Assume devtools open if detection fails
     }
   }
 
-  // 4. Nuclear Protection Enforcement
-  function enforceProtection() {
-    if (!config.protectionActive) return;
+  // 2. Auto-Refresh Mechanism
+  function triggerAutoRefresh() {
+    if (!config.autoRefresh || state.refreshCount >= config.maxRefreshes) {
+      if (config.forceOffline) {
+        activateOfflineMode();
+      }
+      return;
+    }
 
-    // Phase 1: Visual lockdown
-    document.documentElement.innerHTML = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Security Violation</title>
-        <style>
-          body { 
-            background: #000; 
-            color: #f00; 
-            font-family: Arial, sans-serif; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            margin: 0; 
-            overflow: hidden;
-          }
-          .message {
-            text-align: center;
-            animation: pulse 1s infinite;
-          }
-          @keyframes pulse {
-            0% { opacity: 0.5; }
-            50% { opacity: 1; }
-            100% { opacity: 0.5; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="message">
-          <h1>SECURITY BREACH DETECTED</h1>
-          <p>Session terminated due to violation of security policy</p>
-          <p>Incident ID: ${Math.random().toString(36).substring(2, 15)}</p>
-        </div>
-      </body>
-      </html>
-    `;
+    state.refreshCount++;
+    showWarning(config.warningMessages.refreshNotice, 1500);
 
-    // Phase 2: Navigation lockdown
-    window.onbeforeunload = function() {
-      return "Security policy violation detected. Navigation disabled.";
-    };
-
-    // Phase 3: Self-destruct sequence
-    if (config.selfDestructOnTamper) {
+    setTimeout(() => {
+      // Clear all storage before refresh
       try {
         localStorage.clear();
         sessionStorage.clear();
-        indexedDB.databases().then(dbs => {
-          dbs.forEach(db => {
-            indexedDB.deleteDatabase(db.name);
-          });
-        });
       } catch (e) {}
-    }
 
-    // Phase 4: Redirect or close
-    if (config.enableRedirect) {
-      setTimeout(() => {
-        window.location.replace(config.redirectUrl);
-      }, 2000);
-    }
+      // Refresh with random parameter to bypass cache
+      window.location.href = window.location.href.split('?')[0] + '?udps_refresh=' + 
+        Math.random().toString(36).substring(7);
+    }, config.refreshDelay);
   }
 
-  // 5. Stealth Console Protection
-  if (config.enableConsoleProtection) {
-    try {
-      // Create shadow console that captures all attempts
-      const shadowConsole = {};
-      const consoleMethods = ['log', 'warn', 'error', 'info', 'debug', 'table', 'group', 'dir'];
-      
-      consoleMethods.forEach(method => {
-        Object.defineProperty(shadowConsole, method, {
-          value: function() {
-            logActivity('console_attempt', method);
-            if (state.attemptCount < config.maxAttempts) {
-              showWarning(`Console access restricted (${method})`);
-            }
-            return null;
-          },
-          writable: false,
-          configurable: false
-        });
-      });
+  // 3. Offline Mode Activation
+  function activateOfflineMode() {
+    if (!config.forceOffline || state.isOffline) return;
 
-      Object.defineProperty(window, 'console', {
-        value: shadowConsole,
-        writable: false,
-        configurable: false
-      });
+    state.isOffline = true;
+    state.detectionActive = false; // Stop further detection
 
-      // Protect common debugging functions
-      Object.defineProperty(window, 'alert', {
-        value: function(msg) {
-          document.dispatchEvent(new CustomEvent('securityAlert', { detail: msg }));
-        },
-        writable: false,
-        configurable: false
-      });
+    // Show offline warning
+    showWarning(config.warningMessages.offlineMode, 0);
 
-      Object.defineProperty(window, 'debugger', {
-        value: function() {
-          logActivity('debugger_call_attempt');
-          enforceProtection();
-        },
-        writable: false,
-        configurable: false
+    // Disconnect all network activity
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
       });
-    } catch (e) {
-      state.tamperAttempts++;
-      if (state.tamperAttempts > 1) enforceProtection();
     }
+
+    // Block all fetch requests
+    const originalFetch = window.fetch;
+    window.fetch = function() {
+      return Promise.reject(new Error("Network access disabled by security policy"));
+    };
+
+    // Disable WebSockets
+    window.WebSocket = function() {
+      throw new Error("WebSocket access disabled by security policy");
+    };
+
+    // Disable EventSource
+    window.EventSource = function() {
+      throw new Error("EventSource access disabled by security policy");
+    };
+
+    // Replace all images with placeholder
+    document.querySelectorAll('img').forEach(img => {
+      img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgZmlsbD0iI2VlZSI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBhbGlnbm1lbnQtYmFzZWxpbmU9Im1pZGRsZSIgZmlsbD0iIzk5OSI+T0ZGTElORSBNT0RFPC90ZXh0Pjwvc3ZnPg==';
+      img.style.filter = 'grayscale(100%)';
+    });
+
+    // Disable all links
+    document.querySelectorAll('a').forEach(a => {
+      a.href = 'javascript:void(0)';
+      a.onclick = function(e) {
+        e.preventDefault();
+        showWarning("Navigation disabled in offline mode");
+      };
+    });
+
+    // Disable forms
+    document.querySelectorAll('form').forEach(form => {
+      form.onsubmit = function(e) {
+        e.preventDefault();
+        showWarning("Form submission disabled in offline mode");
+      };
+    });
   }
 
-  // 6. AI-Powered Warning System
-  function showWarning(message, level = 'warning') {
-    if (state.warningShown) return;
-
-    // Create warning with dynamic styling based on threat level
+  // 4. Warning System
+  function showWarning(message, duration = 3000) {
     const warningBox = document.createElement('div');
-    warningBox.id = 'udps-warning-box';
     warningBox.style.cssText = `
       position: fixed;
       top: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background-color: ${level === 'warning' ? '#ff4444' : '#ff0000'};
+      background-color: #ff4444;
       color: white;
       padding: 15px 25px;
       border-radius: 5px;
@@ -323,227 +177,76 @@
         <div>
           <strong style="font-size: 16px;">SECURITY ALERT</strong>
           <p style="margin: 5px 0 0; font-size: 14px;">${message}</p>
-          <small style="opacity: 0.8;">Attempt ${state.attemptCount} of ${config.maxAttempts} • ${new Date().toLocaleTimeString()}</small>
         </div>
       </div>
     `;
 
     document.body.appendChild(warningBox);
-    state.warningShown = true;
 
-    setTimeout(() => {
-      warningBox.style.animation = "udpsFadeOut 0.3s forwards";
+    if (duration > 0) {
       setTimeout(() => {
-        warningBox.remove();
-        state.warningShown = false;
-      }, 300);
-    }, 5000);
+        warningBox.style.animation = "udpsFadeOut 0.3s forwards";
+        setTimeout(() => warningBox.remove(), 300);
+      }, duration);
+    }
   }
 
-  // 7. Quantum Monitoring System
+  // 5. Continuous Monitoring with Auto-Refresh
   const monitoringInterval = setInterval(() => {
+    if (!state.detectionActive) return;
+
     if (detectDevTools() && !state.devtoolsOpen) {
       state.devtoolsOpen = true;
-      state.attemptCount++;
-      logActivity('devtools_opened');
-      showWarning(config.warningMessages.devtoolsOpened, 'critical');
-
-      if (state.attemptCount >= config.maxAttempts) {
-        enforceProtection();
-        clearInterval(monitoringInterval);
-      }
+      showWarning(config.warningMessages.devtoolsOpened, 1500);
+      triggerAutoRefresh();
     } else if (!detectDevTools()) {
       state.devtoolsOpen = false;
     }
-    
-    // Check for inactivity
-    if (Date.now() - state.lastActivity > 300000) { // 5 minutes
-      logActivity('session_timeout');
-      enforceProtection();
-    }
   }, config.checkInterval);
 
-  // 8. Advanced Navigation Lock
-  history.pushState(null, null, location.href);
-  window.onpopstate = function(event) {
-    logActivity('navigation_attempt');
-    history.pushState(null, null, location.href);
-    showWarning("Navigation restricted by security policy");
-    
-    // Create iframe to attempt window closing
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = 'about:blank';
-    document.body.appendChild(iframe);
+  // 6. Style for warnings
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes udpsFadeIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    @keyframes udpsFadeOut {
+      from { opacity: 1; transform: translateX(-50%) translateY(0); }
+      to { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+    }
+  `;
+  document.head.appendChild(style);
+
+  // 7. Initialization protection
+  document.addEventListener('DOMContentLoaded', function() {
+    // Check for forced DevTools on load
     setTimeout(() => {
-      try {
-        iframe.contentWindow.close();
-      } catch (e) {}
-      iframe.remove();
-    }, 100);
-  };
-
-  // 9. Web Worker Protection
-  if (config.enableWebWorkerProtection) {
-    const originalWorker = window.Worker;
-    window.Worker = function() {
-      logActivity('webworker_creation_attempt');
-      showWarning("Web Worker creation blocked by security policy");
-      return {
-        postMessage: function() {},
-        terminate: function() {},
-        addEventListener: function() {},
-        removeEventListener: function() {}
-      };
-    };
-  }
-
-  // 10. Service Worker Protection
-  if (config.enableServiceWorkerProtection && 'serviceWorker' in navigator) {
-    const originalRegister = navigator.serviceWorker.register;
-    navigator.serviceWorker.register = function() {
-      logActivity('serviceworker_registration_attempt');
-      return Promise.reject(new Error("Service Worker registration blocked by security policy"));
-    };
-  }
-
-  // 11. Behavioral Analytics Engine
-  function analyzeBehaviorPatterns() {
-    if (shortcutPatterns.length < 5) return;
-    
-    const recentPatterns = shortcutPatterns.slice(-5);
-    const devToolsPattern = recentPatterns.filter(p => 
-      p.modifiers.ctrl && p.modifiers.shift && ['i','j','c','k'].includes(p.key.toLowerCase())
-    ).length >= 2;
-    
-    const rapidKeyPresses = recentPatterns.slice(-3).reduce((acc, curr, i, arr) => {
-      if (i === 0) return acc;
-      return acc + (curr.time - arr[i-1].time < 200 ? 1 : 0);
-    }, 0) >= 2;
-    
-    if (devToolsPattern || rapidKeyPresses) {
-      logActivity('suspicious_behavior_pattern');
-      if (!state.warningShown) {
-        showWarning(config.warningMessages.behaviorAnomaly);
+      if (detectDevTools()) {
+        state.devtoolsOpen = true;
+        triggerAutoRefresh();
       }
-      state.attemptCount++;
+    }, 1000);
+  });
+
+  // 8. Prevent bypassing via URL changes
+  window.addEventListener('hashchange', function() {
+    if (state.detectionActive && detectDevTools()) {
+      triggerAutoRefresh();
     }
-  }
+  });
 
-  // 12. Activity Logger
-  function logActivity(type, data = null) {
-    state.lastActivity = Date.now();
-    state.activityPattern.push({ type, data, timestamp: Date.now() });
-    
-    if (config.stealthMode) {
-      // Encode and store activity in a stealthy way
-      try {
-        const activityLog = JSON.stringify(state.activityPattern);
-        const encodedLog = btoa(activityLog);
-        localStorage.setItem('_udps_log', encodedLog);
-      } catch (e) {}
-    }
-  }
-
-  // 13. Fingerprint Generator
-  function generateFingerprint() {
-    const components = [
-      navigator.userAgent,
-      navigator.hardwareConcurrency,
-      screen.width + 'x' + screen.height,
-      new Date().getTimezoneOffset(),
-      navigator.language,
-      !!window.sessionStorage,
-      !!window.localStorage,
-      navigator.platform,
-      Math.random().toString(36).substring(2, 15)
-    ];
-    
-    let hash = 0;
-    for (let i = 0; i < components.length; i++) {
-      const str = components[i].toString();
-      for (let j = 0; j < str.length; j++) {
-        const char = str.charCodeAt(j);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32bit integer
+  // 9. Nuclear option for persistent DevTools
+  window.addEventListener('blur', function() {
+    // If window loses focus (likely due to DevTools opening)
+    setTimeout(() => {
+      if (detectDevTools()) {
+        triggerAutoRefresh();
       }
-    }
-    
-    return hash.toString(36);
-  }
+    }, 500);
+  });
 
-  // 14. Anti-Tampering Measures
-  const protectionIntegrityCheck = setInterval(() => {
-    try {
-      // Check if our protections are still intact
-      if (window.console && window.console.log.toString().includes('native')) {
-        state.tamperAttempts++;
-        if (state.tamperAttempts > 2) {
-          showWarning(config.warningMessages.tamperDetected, 'critical');
-          enforceProtection();
-          clearInterval(protectionIntegrityCheck);
-        }
-      }
-      
-      // Check if debugger is being manipulated
-      if (Function.prototype.toString.toString().indexOf('native') === -1) {
-        enforceProtection();
-      }
-    } catch (e) {
-      enforceProtection();
-    }
-  }, 1000);
-
-  // 15. Crypto Mining Protection
-  if (config.cryptoMiningProtection) {
-    const cryptoSignatures = [
-      'cryptonight', 'miner', 'coinimp', 'coin-hive',
-      'webassembly', 'wasm', 'webmine', 'cryptojack'
-    ];
-    
-    const observer = new MutationObserver(function(mutations) {
-      mutations.forEach(function(mutation) {
-        mutation.addedNodes.forEach(function(node) {
-          if (node.nodeType === 1) { // Element node
-            const html = node.innerHTML.toLowerCase();
-            if (cryptoSignatures.some(sig => html.includes(sig))) {
-              logActivity('cryptojacking_attempt');
-              node.remove();
-              showWarning("Cryptocurrency mining script blocked");
-            }
-          }
-        });
-      });
-    });
-    
-    observer.observe(document, {
-      childList: true,
-      subtree: true
-    });
-  }
-
-  // Initialization in stealth mode
-  if (config.stealthMode) {
-    // Hide initialization
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes udpsFadeIn {
-        from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
-        to { opacity: 1; transform: translateX(-50%) translateY(0); }
-      }
-      @keyframes udpsFadeOut {
-        from { opacity: 1; transform: translateX(-50%) translateY(0); }
-        to { opacity: 0; transform: translateX(-50%) translateY(-20px); }
-      }
-    `;
-    document.head.appendChild(style);
-    
-    // Disable initial console log if in stealth mode
-  } else {
-    console.log('%c🔒 Quantum DevTools Protection System: ACTIVE', 'color: red; font-weight: bold; font-size: 14px;');
-  }
-
-  // Final lockdown
+  // 10. Final lockdown
   Object.freeze(config);
   Object.freeze(state);
 })();
